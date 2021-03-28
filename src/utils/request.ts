@@ -36,7 +36,6 @@ const get = <T>(
   data: Record<string, any>,
   header: Record<string, any> = {},
 ) => {
-  console.log(url);
   return request<T>(url, 'GET', data, header);
 };
 

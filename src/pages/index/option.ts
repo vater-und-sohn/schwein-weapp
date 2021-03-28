@@ -1,48 +1,36 @@
-import type { IRecord } from '../../services/record';
+import type {
+  IChangeReasonRecord,
+  IPigTypeRecord,
+  IRecord,
+} from '../../services/record';
 
-type PieChartType = 'pigType';
+// eslint-disable-next-line no-shadow
+export enum PieChartType {
+  time = 0,
+  changeReason,
+  pigType,
+}
 
-export function getPieOption(
-  record: IRecord[],
-  type: PieChartType = 'pigType',
-) {
-  const res: {
-    name: string;
-    value: number;
-  }[] = [];
+function getPieOptionWithTime(record: IRecord[]) {
+  const res = record.filter((item) => {
+    return item.period_type === 3;
+  });
 
-  if (type === 'pigType') {
-    const maleRes = record
-      .filter((item) => {
-        return item.pig_type === 0;
-      })
-      .reduce((pre, cur) => {
-        return pre + cur.pig_num;
-      }, 0);
+  const date_time = res.map((item) => {
+    return item.date_time;
+  });
 
-    const femaleRes = record
-      .filter((item) => {
-        return item.pig_type === 1;
-      })
-      .reduce((pre, cur) => {
-        return pre + cur.pig_num;
-      }, 0);
+  const pig_num = res.map((item) => {
+    return item.pig_num;
+  });
 
-    res.push(
-      {
-        name: '公猪',
-        value: maleRes,
-      },
-      {
-        name: '母猪',
-        value: femaleRes,
-      },
-    );
-  }
+  const pig_weight = res.map((item) => {
+    return item.pig_weight;
+  });
 
-  const option = {
+  return {
     title: {
-      text: '转入转出对比',
+      text: '对比图',
       left: 'center',
     },
     tooltip: {
@@ -52,25 +40,137 @@ export function getPieOption(
     legend: {
       orient: 'vertical',
       left: 'left',
-      data: res.map((item) => item.name),
+      data: ['重量', '数量'],
+    },
+    xAxis: {
+      type: 'category',
+      data: date_time,
+    },
+    yAxis: {
+      type: 'value',
     },
     series: [
       {
-        name: '类型',
-        type: 'pie',
-        radius: '55%',
-        center: ['50%', '60%'],
-        data: res,
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
-          },
-        },
+        name: '重量',
+        type: 'line',
+        data: pig_weight,
+        smooth: true,
+      },
+      {
+        name: '数量',
+        type: 'line',
+        data: pig_num,
+        smooth: true,
       },
     ],
   };
+}
 
-  return option;
+function getPieOptionWithChangeReason(record: IChangeReasonRecord[]) {
+  const res = record.filter((item) => item.change_reason !== null);
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        // 坐标轴指示器，坐标轴触发有效
+        type: 'shadow', // 默认为直线，可选为：'line' | 'shadow'
+      },
+    },
+    legend: {
+      data: ['重量', '数量'],
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true,
+    },
+    xAxis: [
+      {
+        type: 'category',
+        data: ['转群', '购入调拨', '转群', '出售（转出）', '死亡', '淘汰'],
+      },
+    ],
+    yAxis: [
+      {
+        type: 'value',
+      },
+    ],
+    series: [
+      {
+        name: '重量',
+        type: 'bar',
+        data: res.map((item) => item.all_weight),
+      },
+      {
+        name: '数量',
+        type: 'bar',
+        data: res.map((item) => item.all_num),
+      },
+    ],
+  };
+}
+
+function getPieOptionWithPigType(record: IPigTypeRecord[]) {
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        // 坐标轴指示器，坐标轴触发有效
+        type: 'shadow', // 默认为直线，可选为：'line' | 'shadow'
+      },
+    },
+    legend: {
+      data: ['重量', '数量'],
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true,
+    },
+    xAxis: [
+      {
+        type: 'category',
+        data: ['公猪', '母猪'],
+      },
+    ],
+    yAxis: [
+      {
+        type: 'value',
+      },
+    ],
+    series: [
+      {
+        name: '重量',
+        type: 'bar',
+        data: record.map((item) => item.all_weight),
+      },
+      {
+        name: '数量',
+        type: 'bar',
+        data: record.map((item) => item.all_num),
+      },
+    ],
+  };
+}
+
+export function getPieOption(
+  record: IRecord[] | IChangeReasonRecord[] | IPigTypeRecord[],
+  type: PieChartType = PieChartType.time,
+) {
+  if (type === PieChartType.time) {
+    return getPieOptionWithTime(record as IRecord[]);
+  }
+
+  if (type === PieChartType.changeReason) {
+    return getPieOptionWithChangeReason(record as IChangeReasonRecord[]);
+  }
+
+  if (type === PieChartType.pigType) {
+    return getPieOptionWithPigType(record as IPigTypeRecord[]);
+  }
+
+  return {};
 }
